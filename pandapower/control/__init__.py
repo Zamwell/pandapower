@@ -5,6 +5,11 @@ from pandapower.control.controller.const_control import ConstControl
 from pandapower.control.controller.trafo.ContinuousTapControl import ContinuousTapControl
 from pandapower.control.controller.trafo.DiscreteTapControl import DiscreteTapControl
 from pandapower.control.controller.trafo_control import TrafoController
+from pandapower.control.controller.storage_control import StorageController
+from pandapower.control.controller.storage.ElectricVehicleControl import EVControl
+from pandapower.control.controller.storage.ElectricVehicleQRegControl import EVQRegControl
+from pandapower.control.controller.prod_control import ProdController
+from pandapower.control.controller.prod.ProdQRegulatedControl import ProdQRegulatedControl
 
 # --- Other ---
 from pandapower.control.run_control import *
