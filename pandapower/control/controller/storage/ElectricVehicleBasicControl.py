@@ -66,7 +66,7 @@ class EVBasicControl(StorageController):
         p = 0.1 * self.efficiency
         if self.in_service:
             if self.soc_percent <= self.socmin: #strat débile, charge max dès qu'on peut
-                self.p_mw = 0.01* self.efficiency
+                self.p_mw = 0.01
             else:
                 self.p_mw = 0
         else:

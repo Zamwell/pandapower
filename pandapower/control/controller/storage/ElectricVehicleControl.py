@@ -65,8 +65,8 @@ class EVControl(StorageController):
     def control_step(self):
         # apply control strategy
         if self.in_service:
-            p_withdrawn = - min(0.1 / self.efficiency, max(self.max_e_mwh * (self.soc_percent - self.socmin) * 4, -0.1 * self.efficiency))
-            p_inject = min (0.1 * self.efficiency, self.max_e_mwh * (1 - self.soc_percent) * 4)
+            p_withdrawn = - min(0.01 / self.efficiency, max(self.max_e_mwh * (self.soc_percent - self.socmin) * 4, -0.01 * self.efficiency))
+            p_inject = min (0.01 * self.efficiency, self.max_e_mwh * (1 - self.soc_percent) * 4)
             if p_withdrawn < 0:
                 p_withdrawn = p_withdrawn * self.efficiency
             else:
