@@ -64,11 +64,14 @@ class EVQRegControl(StorageController):
                 self.p_mw = 0
         else:
             self.p_mw = 0
+        self.applied = False
     
     def is_converged(self):
         # calculate convergence criteria
         if not self.net['storage'].at[self.gid, 'in_service']:
             return True
+        if self.applied == False:
+            return False
         if self.p_mw == 0:
             return True
         u = self.net.res_bus.at[self.bus, "vm_pu"]
@@ -108,3 +111,4 @@ class EVQRegControl(StorageController):
         else:
             self.p_mw = 0
         self.write_to_net()
+        self.applied = True
