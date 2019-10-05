@@ -19,6 +19,7 @@ class ProdQRegulatedControl(ProdController):
         self.data_source = data_source
         self.last_time_step = None
         self.p_max = pmax
+        self.applied = False
         
     def time_step(self, time):
         self.last_time_step = time
@@ -39,6 +40,8 @@ class ProdQRegulatedControl(ProdController):
     
     def is_converged(self):
         # calculate convergence criteria
+        if not(self.applied):
+            return False
         if not self.net['sgen'].at[self.gid, 'in_service']:
             return True
         u = self.net.res_bus.at[self.bus, "vm_pu"]
@@ -60,6 +63,7 @@ class ProdQRegulatedControl(ProdController):
         # apply control strategy
         u = self.net.res_bus.at[self.bus, "vm_pu"]
         p = self.p_max
+        q = self.q_mvar
         if 0.9725 < u < 1.0375:
             q = 0
         elif u <= 0.96:
@@ -72,3 +76,4 @@ class ProdQRegulatedControl(ProdController):
             q = p*0.35(u - 1.0375)/0.0125
         self.q_mvar = q
         self.write_to_net()
+        self.applied = True
