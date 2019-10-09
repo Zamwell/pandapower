@@ -59,7 +59,7 @@ class EVQRegControl(StorageController):
         # at the beginning of each time step reset applied-flag
         if self.in_service:
             if self.soc_percent <= self.socmin:
-                self.p_mw = 0.1 * self.efficiency
+                self.p_mw = 0.01 * self.efficiency
             else:
                 self.p_mw = 0
         else:
@@ -94,7 +94,7 @@ class EVQRegControl(StorageController):
         p = 0.1 * self.efficiency
         if self.in_service:
             if self.soc_percent <= self.socmin: #strat débile, charge max dès qu'on peut
-                self.p_mw = 0.1* self.efficiency
+                self.p_mw = 0.01* self.efficiency
                 if 0.9725 < u < 1.0375:
                     q = 0
                 elif u <= 0.96:
