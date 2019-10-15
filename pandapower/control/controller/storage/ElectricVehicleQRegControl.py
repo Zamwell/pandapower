@@ -16,6 +16,7 @@ class EVQRegControl(StorageController):
         super(EVQRegControl, self).__init__(net, gid)
     
         # profile attributes
+        self.bus_residence = self.bus
         self.data_source = data_source #emplacement (=endroit ou est la voiture) et capacité actuelle de la batterie
         self.last_time_step = None
         self.emplacement = None
@@ -45,12 +46,14 @@ class EVQRegControl(StorageController):
             self.socmin = self.data_source.get_time_step_value(time_step = time, profile_name = "socmin")
         self.in_service = (self.emplacement == 0)
         self.soc_limit()
+        self.changement_endroit()
         #On met en service le noeud sur le réseau si l'ev est sur place (on attend pas la suite, c'est pas très utile)
         self.write_to_net()
         
     def write_to_net(self):
         # on check 
         self.net.storage.at[self.gid, "in_service"] = self.in_service
+        self.net.storage.at[self.gid, "bus"] = self.bus
         self.net.storage.at[self.gid, "soc_percent"] = self.soc_percent
         self.net.storage.at[self.gid, "p_mw"] = self.p_mw
         self.net.storage.at[self.gid, "q_mvar"] = self.q_mvar
@@ -112,3 +115,10 @@ class EVQRegControl(StorageController):
             self.p_mw = 0
         self.write_to_net()
         self.applied = True
+
+    def changement_endroit(self):
+        if self.emplacement == 2:
+            self.bus  = 10
+            self.in_service = True
+        else:
+            self.bus = self.bus_residence
