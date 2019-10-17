@@ -12,7 +12,7 @@ class EVBasicControl(StorageController):
     Models a EV
     """
 
-    def __init__(self, net, gid, data_source, efficiency = 1):
+    def __init__(self, net, gid, data_source, puis_rech = 0.01, efficiency = 1):
         super(EVBasicControl, self).__init__(net, gid)
     
         # profile attributes
@@ -24,6 +24,7 @@ class EVBasicControl(StorageController):
         self.efficiency = efficiency
         self.socmin = None
         self.applied = False
+        self.puis_rech = puis_rech
 
         
     def time_step(self, time):
@@ -66,10 +67,9 @@ class EVBasicControl(StorageController):
 
     def control_step(self):
         # apply control strategy
-        p = 0.01 * self.efficiency
         if self.in_service:
             if self.soc_percent <= self.socmin: #strat débile, charge max dès qu'on peut
-                self.p_mw = 0.01
+                self.p_mw = self.puis_rech
             else:
                 self.p_mw = 0
         else:

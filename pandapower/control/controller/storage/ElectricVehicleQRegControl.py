@@ -12,9 +12,9 @@ class EVQRegControl(StorageController):
     Models a EV
     """
 
-    def __init__(self, net, gid, data_source, efficiency = 1):
-        super(EVQRegControl, self).__init__(net, gid)
-    
+    def __init__(self, net, gid, data_source, puis_rech = 0.01, efficiency = 1,in_service = True, level = 0, order = 0, recycle = False):
+        super(EVQRegControl, self).__init__(net, gid, in_service = in_service, level = level, order = order, recycle = recycle)
+        self.update_initialized(locals())
         # profile attributes
         self.bus_residence = self.bus
         self.data_source = data_source #emplacement (=endroit ou est la voiture) et capacité actuelle de la batterie
@@ -26,6 +26,8 @@ class EVQRegControl(StorageController):
         self.reserve = 0
         self.fluct_freq = 0
         self.q_mvar = 0
+        self.mode = 'basic'
+        self.puis_rech = puis_rech
         
     def time_step(self, time):
         if self.in_service:
@@ -44,7 +46,7 @@ class EVQRegControl(StorageController):
             self.soc_percent -= self.data_source.get_time_step_value(time_step=time,
                                                                     profile_name="nrj_utilisee") / self.max_e_mwh
             self.socmin = self.data_source.get_time_step_value(time_step = time, profile_name = "socmin")
-        self.in_service = (self.emplacement == 0)
+            
         self.soc_limit()
         self.changement_endroit()
         #On met en service le noeud sur le réseau si l'ev est sur place (on attend pas la suite, c'est pas très utile)
@@ -94,10 +96,22 @@ class EVQRegControl(StorageController):
     def control_step(self):
         # apply control strategy
         u = self.net.res_bus.at[self.bus, "vm_pu"]
-        p = 0.1 * self.efficiency
+        p = self.puis_rech
         if self.in_service:
             if self.soc_percent <= self.socmin: #strat débile, charge max dès qu'on peut
-                self.p_mw = 0.01* self.efficiency
+                p_withdrawn = - min(self.puis_rech / self.efficiency, max(self.max_e_mwh * (self.soc_percent - self.socmin) * 4, - self.puis_rech * self.efficiency))
+                p_inject = min (self.puis_rech * self.efficiency, self.max_e_mwh * (1 - self.soc_percent) * 4)
+                if p_withdrawn < 0:
+                    p_withdrawn = p_withdrawn * self.efficiency
+                else:
+                    p_withdrawn = p_withdrawn / self.efficiency
+                if p_inject < 0:
+                    p_inject = p_inject * self.efficiency
+                else:
+                    p_inject = p_inject / self.efficiency
+                
+                self.p_mw = (p_withdrawn + p_inject)/2
+                
                 if 0.9725 < u < 1.0375:
                     q = 0
                 elif u <= 0.96:
@@ -117,8 +131,21 @@ class EVQRegControl(StorageController):
         self.applied = True
 
     def changement_endroit(self):
-        if self.emplacement == 2:
-            self.bus  = 10
+        if self.emplacement == 0:
+            self.bus = self.bus_residence
+            self.puis_rech = 0.003
+            self.in_service = True
+        elif self.emplacement == 1:
+            self.bus = 11
+            self.puis_rech = 0.007
+            self.in_service = True
+        elif self.emplacement == 2:
+            self.bus = 10
+            self.puis_rech = 0.015
             self.in_service = True
         else:
-            self.bus = self.bus_residence
+            self.in_service = False
+
+            
+    def switch_mode(self, mode):
+        self.mode = mode

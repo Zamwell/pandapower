@@ -6,15 +6,16 @@ Created on Tue Sep 24 14:26:35 2019
 """
 
 from pandapower.control.controller.storage_control import StorageController
+import random
 
 class EVControl(StorageController):
     """
     Models a EV
     """
 
-    def __init__(self, net, gid, data_source, efficiency = 1):
-        super(EVControl, self).__init__(net, gid)
-    
+    def __init__(self, net, gid, data_source, puis_rech = 0.01, efficiency = 1,in_service = True, level = 0, order = 0, recycle = False):
+        super(EVControl, self).__init__(net, gid, in_service = in_service, level = level, order = order, recycle = recycle)
+        self.update_initialized(locals())
         # profile attributes
         self.bus_residence = self.bus
         self.data_source = data_source #emplacement (=endroit ou est la voiture) et capacité actuelle de la batterie
@@ -25,11 +26,14 @@ class EVControl(StorageController):
         self.socmin = None
         self.reserve = 0
         self.fluct_freq = 0
+        self.mode = 'freq_reg'
+        self.puis_rech = puis_rech
         
     def time_step(self, time):
         if self.in_service:
             #gérer SOC (parce que si l'ev est branchée elle a pu se charger/décharger avec le réseau)
-            p_fin = self.p_mw + self.fluct_freq * self.reserve
+            
+            p_fin = self.p_mw
             if p_fin > 0:
                 self.soc_percent += p_fin * self.efficiency / 4 /self.max_e_mwh
             elif p_fin < 0:
@@ -44,7 +48,7 @@ class EVControl(StorageController):
                                                                     profile_name="nrj_utilisee") / self.max_e_mwh
             self.socmin = self.data_source.get_time_step_value(time_step = time, profile_name = "socmin")
             self.fluct_freq = self.data_source.get_time_step_value(time_step = time, profile_name = "freq")
-        self.in_service = (self.emplacement == 0)
+
         self.soc_limit()
         self.changement_endroit()
         #On met en service le noeud sur le réseau si l'ev est sur place (on attend pas la suite, c'est pas très utile)
@@ -68,8 +72,8 @@ class EVControl(StorageController):
     def control_step(self):
         # apply control strategy
         if self.in_service:
-            p_withdrawn = - min(0.01 / self.efficiency, max(self.max_e_mwh * (self.soc_percent - self.socmin) * 4, -0.01 * self.efficiency))
-            p_inject = min (0.01 * self.efficiency, self.max_e_mwh * (1 - self.soc_percent) * 4)
+            p_withdrawn = - min(self.puis_rech / self.efficiency, max(self.max_e_mwh * (self.soc_percent - self.socmin) * 4, - self.puis_rech * self.efficiency))
+            p_inject = min (self.puis_rech * self.efficiency, self.max_e_mwh * (1 - self.soc_percent) * 4)
             if p_withdrawn < 0:
                 p_withdrawn = p_withdrawn * self.efficiency
             else:
@@ -84,6 +88,8 @@ class EVControl(StorageController):
 #                self.p_mw = 0.1
 #            else:
 #                self.p_mw = 0
+            if self.mode == 'freq_reg':
+                self.p_mw = self.p_mw + self.fluct_freq * self.reserve
         else:
             self.p_mw = 0
         self.write_to_net()
@@ -91,8 +97,23 @@ class EVControl(StorageController):
 
 
     def changement_endroit(self):
-        if self.emplacement == 2:
-            self.bus  = 10
+        """
+        Here we control the place of the vehicule.
+        """
+        if self.emplacement == 0:
+            self.bus = self.bus_residence
+            self.puis_rech = 0.003
+            self.in_service = True
+        elif self.emplacement == 1:
+            self.bus = 11
+            self.puis_rech = 0.007
+            self.in_service = True
+        elif self.emplacement == 2:
+            self.bus = 10
+            self.puis_rech = 0.015
             self.in_service = True
         else:
-            self.bus = self.bus_residence
+            self.in_service = False
+            
+    def switch_mode(self, mode):
+        self.mode = mode

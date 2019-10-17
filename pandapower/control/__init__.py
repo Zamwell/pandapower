@@ -10,7 +10,7 @@ from pandapower.control.controller.storage.ElectricVehicleControl import EVContr
 from pandapower.control.controller.storage.ElectricVehicleQRegControl import EVQRegControl
 from pandapower.control.controller.prod_control import ProdController
 from pandapower.control.controller.prod.ProdQRegulatedControl import ProdQRegulatedControl
-
+from pandapower.control.controller.agg_control import AggControl
 # --- Other ---
 from pandapower.control.run_control import *
 from pandapower.control.run_control import ControllerNotConverged
